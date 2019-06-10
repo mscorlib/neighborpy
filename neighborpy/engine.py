@@ -3,6 +3,7 @@ from typing import List, Dict
 import numpy as np
 from nptyping import Array
 from sklearn.neighbors import BallTree
+from sklearn.metrics.pairwise import paired_distances, cosine_similarity
 from neighborpy.storage import Storage
 from neighborpy.storage import MemoryStorage
 from neighborpy.db import Db
@@ -28,6 +29,10 @@ class Engine:
 
     def is_db_exist(self, key: str) -> bool:
         return key in self._db_keys
+
+    @property
+    def db_keys(self):
+        return self._db_keys
 
     def create_db(self, key: str) -> bool:
         if key in self._db_keys:
@@ -121,6 +126,7 @@ class Engine:
         db = self._dbs[db_key]
 
         c1 = time.clock()
+
         count = 0
         start = np.size(db.matrix, 0)
         values = list(vs.values())
@@ -141,10 +147,13 @@ class Engine:
         #     db.index_map[index] = k
 
         c2 = time.clock()
-        print('build matrix %d, clock %0.6f' % (len(vs), (c2 - c1)))
+        print('build matrix %d, clock: %0.6f' % (len(vs), (c2 - c1)))
 
         dcount = db.count()
+        c1 = time.clock()
         tree = BallTree(db.matrix, leaf_size=self._leaf_size)
+        c2 = time.clock()
+        print('build tree clock: %0.6f' %(c2 - c1))
         db.tree = tree
 
         self.save_db(db)
@@ -183,7 +192,7 @@ class Engine:
 
         return True
 
-    def query_item(self, db_key, v: Array[np.float], take=1):
+    def query_item(self, db_key, v: Array[np.float], take=1)->Dict[str, float]:
         if db_key not in self._db_keys:
             return None
 
@@ -192,6 +201,32 @@ class Engine:
 
         db = self._dbs[db_key]
 
-        dist, ind = db.tree.query([v], k=take)
+        # query
+        dist, ind = db.tree.query([v], k=take+1)
 
-        return db.index_map[ind[0][0]]
+        idx = ind[0].tolist()
+        idx.remove(0)
+
+        # build result matrix
+        index = 0
+        count = len(idx)
+        matrix = np.zeros((count, db.dim))
+        for k in idx:
+            matrix[index] = db.matrix[k]
+            index += 1
+
+        # build query matrix
+        qm = np.zeros((1, db.dim))
+        qm[0] = v
+
+        # get cosine similarity
+        distances = cosine_similarity(qm, matrix)
+
+        keys = [db.index_map[index] for index in idx]
+        result = dict(zip(keys, distances[0].tolist()))
+
+        # remove last
+        if len(result) > take:
+            result = result[:-2]
+
+        return result

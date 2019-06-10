@@ -1,77 +1,123 @@
-import random
-import time
-from neighborpy import Engine
-from datas import example1
 import numpy as np
+from neighborpy import Engine
+from neighborpy.webservice import ResponseModel
+from flask import Flask, request, jsonify, Blueprint
+
+
+app = Flask(__name__)
+url_root = '/api/engine/'
 
 DIM = 128
-dname = 'test'
 engine = Engine(dim=DIM)
-engine.create_db(dname)
-POINTS = 300_000
 
-reader = open('data.txt', 'r')
-fx1 = list(map(float, reader.readline().rstrip('\n').strip('[').strip(']').split(',')))
-fx2 = list(map(float, reader.readline().rstrip('\n').strip('[').strip(']').split(',')))
 
-dot = round(random.uniform(0.3, 0.7),3)
+@app.errorhandler(Exception)
+def error(e):
+    err = {
+        'code': e.code,
+        'name': e.name,
+        'description': e.description
+    }
+    model = ResponseModel(err, errors=1, message=[err['description']])
+    return jsonify(model.__dict__)
 
-key = int(1 + random.randint(0, POINTS * (1 - dot)))
 
-matrix = {}
-for i in range(POINTS):
-    if i == key:
-        matrix['k_' + str(i)] = np.array(fx1)
-    else:
-        v = np.random.randn(DIM)
-        matrix['k_' + str(i)] = v
+@app.route('/ping', methods=['GET'])
+def ping():
+    model = ResponseModel('pong')
+    return jsonify(model.__dict__)
 
-engine.add_items(dname, vs=matrix)
 
-c1 = time.clock()
-for i in range(0, 10):
-    p = int(POINTS*round(random.uniform(0.01, 0.99),3))
-    rk = 'k_' + str(p)
-    engine.delete_item(dname, rk)
-    print('delete %s' % rk)
-c2 = time.clock()
+@app.route(url_root + 'db/keys', methods=['GET'])
+def get_db_keys():
+    data = engine.db_keys
 
-print('delete item clock: %0.6f' % (c2 - c1))
-ind = engine.query_item(dname, np.array(fx2))
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
 
-print('dest: K_%s, result: %s' % (key, ind))
 
-# dic = {}
-# dic2 = {'key':'t1', 'val':'v1'}
-# dic['t1'] = np.array([[1,2,3],[2,3,4,],[3,4,5]])
-# dic['t2'] = np.array([[4,5,6],[5,6,7]])
-# dic['t3'] = np.array([[6,7,8]])
-#
-# dic3 = np.append(dic['t1'], dic['t2'], axis=0)
-#
-# data = [[1,2,3,4],[4,5,6,7,8]]
-# #dic['data'] = data
-# dic['dic'] = dic2
-# print(dic)
-# dic7 = np.array(data)
-# print(dic7)
-# l2 = {
-#     'key': 123,
-#     'Value': 231
-# }
-# l3 = []
-#
-# try:
-#     print(l2['ttt'])
-# except BaseException as err:
-#     print(err)
-# print(dic3)
-# print(np.size(dic3, 0))
-# print(np.random.randn(128))
+@app.route(url_root + 'db', methods=['POST'])
+def create_db():
+    params = request.json
 
-# matrix = np.ones((100000, 128))
-# start = time.clock()
-# tree = BallTree(matrix, leaf_size=2000)
-# end = time.clock()
-# print('build tree, clock %0.6f' % (end - start))
-# example1()
+    key = params['key']
+
+    data = engine.create_db(key)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+@app.route(url_root + 'db', methods=['DELETE'])
+def delete_db():
+    params = request.json
+
+    key = params['key']
+    data = engine.delete_db(key)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+@app.route(url_root + 'item', methods=['POST'])
+def add_item():
+    params = request.json
+
+    key = params['id']
+    db_key = params['db_key']
+    fx = params['feature']
+
+    data = engine.add_item(db_key=db_key, v=np.array(fx), data=key)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+@app.route(url_root + 'item', methods=['DELETE'])
+def delete_item():
+    params = request.json
+    db_key = params['db_key']
+    key = params['key']
+    data = engine.delete_item(db_key, key)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+@app.route(url_root + 'items', methods=['POST'])
+def add_items():
+    params = request.json
+
+    dic = {}
+    for item in params:
+        db_key = item['db_key']
+        key = item['key']
+        fx = item['feature']
+        dic[key] = np.array(fx)
+
+    data = engine.add_items(db_key, dic)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+@app.route(url_root + 'items', methods=['DELETE'])
+def delete_items():
+    pass
+
+
+@app.route(url_root + 'query', methods=['POST'])
+def query_items():
+    params = request.json
+    db_key = params['db_key']
+    fx = params['feature']
+    k = params['take']
+
+    data = engine.query_item(db_key, np.array(fx), k)
+
+    model = ResponseModel(data)
+    return jsonify(model.__dict__)
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8081, debug=True)
