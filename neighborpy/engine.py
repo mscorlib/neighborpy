@@ -3,9 +3,10 @@ from typing import List, Dict
 import numpy as np
 from nptyping import Array
 from sklearn.neighbors import BallTree
-from sklearn.metrics.pairwise import paired_distances, cosine_similarity
-from neighborpy.storage import Storage
-from neighborpy.storage import MemoryStorage
+from sklearn.metrics.pairwise import cosine_similarity
+from neighborpy.exception import EngineException
+from neighborpy.storage.storage import Storage
+from neighborpy.storage.storage_memory import MemoryStorage
 from neighborpy.db import Db
 
 
@@ -36,14 +37,15 @@ class Engine:
 
     def create_db(self, key: str) -> bool:
         if key in self._db_keys:
-            return False
+            raise EngineException('db exist', 'db key: [{}] is exist!'.format(key))
+
         self._db_keys.append(key)
         self._storage.save_db_keys(self._db_keys)
         return True
 
     def _load_db(self, key: str) -> bool:
         if key not in self._db_keys:
-            return False
+            raise EngineException('db not found', 'db key: [{}] not found!'.format(key))
 
         if key in self._dbs:
             return True
@@ -89,7 +91,7 @@ class Engine:
 
     def add_item(self, db_key: str, v: Array[np.float], data: str) -> bool:
         if db_key not in self._db_keys:
-            return False
+            raise EngineException('db not found', 'db key: [{}] not found!'.format(db_key))
 
         if db_key not in self._dbs:
             self._load_db(db_key)
@@ -108,7 +110,7 @@ class Engine:
         db.matrix = np.append(db.matrix, [v], axis=0)
 
         db.id_map[data] = index
-        db.index_map[index] = data
+        db.index_map[str(index)] = data
         tree = BallTree(db.matrix, leaf_size=self._leaf_size)
         db.tree = tree
 
@@ -118,7 +120,7 @@ class Engine:
 
     def add_items(self, db_key: str, vs: Dict[str, Array[np.float]]):
         if db_key not in self._db_keys:
-            return False
+            raise EngineException('db not found', 'db key: [{}] not found!'.format(db_key))
 
         if db_key not in self._dbs:
             self._load_db(db_key)
@@ -135,7 +137,7 @@ class Engine:
             index = start + count
             count += 1
             db.id_map[k] = index
-            db.index_map[index] = k
+            db.index_map[str(index)] = k
         # for k in vs:
         #     if len(db.free_map) > 0:
         #         index = db.free_map.pop()
@@ -149,18 +151,18 @@ class Engine:
         c2 = time.clock()
         print('build matrix %d, clock: %0.6f' % (len(vs), (c2 - c1)))
 
-        dcount = db.count()
-        c1 = time.clock()
+        # d_count = db.count()
+        # c1 = time.clock()
         tree = BallTree(db.matrix, leaf_size=self._leaf_size)
-        c2 = time.clock()
-        print('build tree clock: %0.6f' %(c2 - c1))
+        # c2 = time.clock()
+        # print('build tree clock: %0.6f' %(c2 - c1))
         db.tree = tree
 
         self.save_db(db)
 
     def delete_item(self, db_key: str, data: str) -> bool:
         if db_key not in self._db_keys:
-            return False
+            raise EngineException('db not found', 'db key: [{}] not found!'.format(db_key))
 
         if db_key not in self._dbs:
             self._load_db(db_key)
@@ -168,7 +170,7 @@ class Engine:
         db = self._dbs[db_key]
 
         index = db.id_map[data]
-        rows, cols = db.matrix.shape
+        # rows, cols = db.matrix.shape
         db.matrix = np.delete(db.matrix, index, axis=0)
         del db.id_map[data]
 
@@ -176,7 +178,7 @@ class Engine:
         count = 1
         for key in db.id_map:
             db.id_map[key] = count
-            db.index_map[count] = key
+            db.index_map[str(count)] = key
             count += 1
 
         # db.matrix[index] = np.random.randn(self._dim)
@@ -194,7 +196,7 @@ class Engine:
 
     def query_item(self, db_key, v: Array[np.float], take=1)->Dict[str, float]:
         if db_key not in self._db_keys:
-            return None
+            raise EngineException('db not found', 'db key: [{}] not found!'.format(db_key))
 
         if db_key not in self._dbs:
             self._load_db(db_key)
@@ -205,7 +207,9 @@ class Engine:
         dist, ind = db.tree.query([v], k=take+1)
 
         idx = ind[0].tolist()
-        idx.remove(0)
+
+        if 0 in idx:
+            idx.remove(0)
 
         # build result matrix
         index = 0
@@ -222,11 +226,12 @@ class Engine:
         # get cosine similarity
         distances = cosine_similarity(qm, matrix)
 
-        keys = [db.index_map[index] for index in idx]
+        keys = [db.index_map[str(index)] for index in idx]
         result = dict(zip(keys, distances[0].tolist()))
 
         # remove last
         if len(result) > take:
-            result = result[:-2]
+            for k in list(result)[-1:]:
+                del result[k]
 
         return result

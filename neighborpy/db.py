@@ -10,7 +10,7 @@ class Db:
     tree: BallTree
     matrix: Array[np.float]
     id_map: Dict[str, int]
-    index_map: Dict[int, str]
+    index_map: Dict[str, str]
     # free_map: List[int]
 
     def __init__(self, key: str, dim: int):

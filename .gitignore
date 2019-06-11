@@ -118,3 +118,5 @@ dmypy.json
 .idea/
 .vscode/
 */*_cache/
+*.c
+build

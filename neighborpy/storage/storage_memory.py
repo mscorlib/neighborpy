@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Iterable, Sequence, Tuple, NamedTuple
 from nptyping import Array
 import numpy as np
 
-from neighborpy.storage import Storage
+from neighborpy.storage.storage import Storage
 
 
 class MemoryStorage(Storage):

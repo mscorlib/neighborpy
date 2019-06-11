@@ -1,7 +1,7 @@
 import random
 import time
-from neighborpy import Engine
-from datas import example1
+from neighborpy.engine import Engine
+# from datas import example1
 import numpy as np
 
 DIM = 128

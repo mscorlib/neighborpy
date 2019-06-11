@@ -6,7 +6,7 @@ class ResponseModel(object):
     message: list
     data: Any
 
-    def __init__(self, data, errors: int = 0, message: list = []):
+    def __init__(self, data = None, errors: int = 0, message: list = []):
         self.data = data
         self.errors = errors
         self.message = message
