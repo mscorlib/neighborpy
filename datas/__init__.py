@@ -1,1 +1,0 @@
-from datas.example1 import example1

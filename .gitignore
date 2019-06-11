@@ -119,4 +119,3 @@ dmypy.json
 .vscode/
 */*_cache/
 *.c
-datas/
