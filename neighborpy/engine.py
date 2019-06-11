@@ -203,8 +203,18 @@ class Engine:
 
         db = self._dbs[db_key]
 
+        i_count = len(db.index_map)
+
+        if i_count == 1:
+            return {}
+
+        if take >= i_count:
+            k = i_count
+        else:
+            k = take + 1
+
         # query
-        dist, ind = db.tree.query([v], k=take+1)
+        dist, ind = db.tree.query([v], k=k)
 
         idx = ind[0].tolist()
 

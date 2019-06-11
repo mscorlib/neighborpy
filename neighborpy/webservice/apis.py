@@ -37,6 +37,17 @@ def construct_blueprint(engine: Engine= Engine(dim=DIM)):
         model = ResponseModel('pong')
         return jsonify(model.__dict__)
 
+    @engine_api.route('db/exist', methods=['POST'])
+    def db_exist():
+        params = request.json
+
+        key = params['key']
+
+        data = _engine.is_db_exist(key)
+
+        model = ResponseModel(data)
+        return jsonify(model.__dict__)
+
     @engine_api.route('db/keys', methods=['GET'])
     def get_db_keys():
         data = _engine.db_keys
