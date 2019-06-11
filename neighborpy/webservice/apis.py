@@ -117,7 +117,15 @@ def construct_blueprint(engine: Engine= Engine(dim=DIM)):
 
     @engine_api.route('items', methods=['DELETE'])
     def delete_items():
-        pass
+        params = request.json
+
+        key = params['key']
+        db_key = params['db_key']
+
+        data = _engine.delete_item(db_key=db_key, data=key)
+
+        model = ResponseModel(data)
+        return jsonify(model.__dict__)
 
     @engine_api.route('query', methods=['POST'])
     def query_items():
