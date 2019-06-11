@@ -8,7 +8,7 @@ DIM = 128
 dname = 'test'
 engine = Engine(dim=DIM)
 engine.create_db(dname)
-POINTS = 300_000
+POINTS = 100_000
 
 reader = open('data.txt', 'r')
 fx1 = list(map(float, reader.readline().rstrip('\n').strip('[').strip(']').split(',')))
@@ -26,8 +26,10 @@ for i in range(POINTS):
         v = np.random.randn(DIM)
         matrix['k_' + str(i)] = v
 
+c1 = time.clock()
 engine.add_items(dname, vs=matrix)
-
+c2 = time.clock()
+print('add %d items clock: %0.6f' % (POINTS, (c2 - c1)))
 # c1 = time.clock()
 # for i in range(0, 5):
 #     p = int(POINTS*round(random.uniform(0.01, 0.99),3))
