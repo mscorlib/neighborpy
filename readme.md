@@ -17,7 +17,7 @@
 |/api/engine/item|POST|{'db_key':str,'key':str,'feature':[dim]}|bool|添加向量|
 |/api/engine/items|POST|[{'db_key':str,'key':str,'feature':[dim]}]|bool|批量添加向量|
 |/api/engine/item|DELETE|{'db_key':str,'key':str,'feature':[dim]}|bool|删除向量|
-|/api/engine/query|POST|{'db_key':str,'feature':[dim],'take':int}|bool|相似度检索|
+|/api/engine/query|POST|{'db_key':str,'feature':[dim],'take':int}|dict[str,float]|检索，返回[key:相似度]的集合|
 
 
 ### 编译

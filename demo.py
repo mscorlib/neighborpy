@@ -1,8 +1,9 @@
 import random
 import time
 from neighborpy.engine import Engine
-# from datas import example1
 import numpy as np
+import pandas as pd
+
 
 DIM = 128
 dname = 'test'
@@ -25,6 +26,22 @@ for i in range(POINTS):
     else:
         v = np.random.randn(DIM)
         matrix['k_' + str(i)] = v
+
+
+c1 = time.clock()
+df = pd.DataFrame.from_dict(matrix, orient='index')
+c2 = time.clock()
+print('build DataFrame from %d items, clock: %0.6f' % (POINTS, (c2 - c1)))
+
+print(df.shape[0])
+
+k2 = random.randint(0, POINTS)
+c1 = time.clock()
+df.drop(index='k_' + str(k2), inplace=True)
+c2 = time.clock()
+print('delete item from %d items DataFrame, clock: %0.6f' % (POINTS, (c2 - c1)))
+
+print(df.shape[0])
 
 c1 = time.clock()
 engine.add_items(dname, vs=matrix)

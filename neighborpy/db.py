@@ -1,5 +1,6 @@
 from typing import List, Dict
 import numpy as np
+import pandas as pd
 from nptyping import Array
 from sklearn.neighbors import BallTree
 
